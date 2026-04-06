@@ -6,22 +6,44 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { exportData, downloadBlob, ExportFilters } from '@/services/exportService';
 
 const presets = [
-  { id: 'daily', name: 'Daily Internal Report', description: 'All sessions, last 24h, high confidence only' },
-  { id: 'vs_competitors', name: '2DIE4 vs Competitors', description: 'Comparison data across all cinemas' },
-  { id: 'imax', name: 'IMAX Performance Report', description: 'IMAX-only sessions with occupancy trends' },
-  { id: 'audit', name: 'Low-Confidence Audit Report', description: 'Snapshots with confidence < 70' },
+  { id: 'daily', name: 'Daily Internal Report', description: 'All sessions, last 24h, high confidence only', filters: { dataType: 'snapshots' as const, highConfidenceOnly: true } },
+  { id: 'vs_competitors', name: '2DIE4 vs Competitors', description: 'Comparison data across all cinemas', filters: { dataType: 'comparison' as const } },
+  { id: 'imax', name: 'IMAX Performance Report', description: 'IMAX-only sessions with occupancy trends', filters: { dataType: 'snapshots' as const, imaxOnly: true } },
+  { id: 'audit', name: 'Low-Confidence Audit Report', description: 'Snapshots with confidence < 70', filters: { dataType: 'snapshots' as const } },
 ];
 
 export default function ExportsPage() {
-  const [format, setFormat] = useState('csv');
+  const [format, setFormat] = useState<'csv' | 'xlsx'>('csv');
   const [imaxOnly, setImaxOnly] = useState(false);
   const [highConfOnly, setHighConfOnly] = useState(false);
+  const [dataType, setDataType] = useState<'snapshots' | 'sessions' | 'comparison'>('snapshots');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [exporting, setExporting] = useState(false);
 
-  const handleExport = (presetName?: string) => {
-    toast.success(`Export started: ${presetName || 'Custom export'} (${format.toUpperCase()})`);
-  };
+  async function handleExport(filters?: Partial<ExportFilters>, presetName?: string) {
+    setExporting(true);
+    try {
+      const f: ExportFilters = {
+        dataType: filters?.dataType || dataType,
+        imaxOnly: filters?.imaxOnly ?? imaxOnly,
+        highConfidenceOnly: filters?.highConfidenceOnly ?? highConfOnly,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+      };
+      const blob = await exportData(f, format);
+      const name = `${presetName || 'export'}_${new Date().toISOString().slice(0, 10)}.${format}`;
+      downloadBlob(blob, name);
+      toast.success(`Export downloaded: ${name}`);
+    } catch (e: any) {
+      toast.error(e.message || 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -32,7 +54,7 @@ export default function ExportsPage() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Format</Label>
-            <Select value={format} onValueChange={setFormat}>
+            <Select value={format} onValueChange={v => setFormat(v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="csv">CSV</SelectItem>
@@ -42,7 +64,7 @@ export default function ExportsPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Data Type</Label>
-            <Select defaultValue="snapshots">
+            <Select value={dataType} onValueChange={v => setDataType(v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="snapshots">Snapshot-level</SelectItem>
@@ -53,11 +75,11 @@ export default function ExportsPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Date From</Label>
-            <Input type="date" defaultValue="2025-04-01" />
+            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Date To</Label>
-            <Input type="date" defaultValue="2025-04-05" />
+            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
           </div>
           <div className="flex items-center gap-2 pt-4">
             <Switch id="imax" checked={imaxOnly} onCheckedChange={setImaxOnly} />
@@ -68,7 +90,9 @@ export default function ExportsPage() {
             <Label htmlFor="highConf" className="text-xs">High confidence only</Label>
           </div>
         </div>
-        <Button onClick={() => handleExport()} className="w-full"><Download size={14} className="mr-1" /> Export</Button>
+        <Button onClick={() => handleExport()} className="w-full" disabled={exporting}>
+          <Download size={14} className="mr-1" /> {exporting ? 'Exporting...' : 'Export'}
+        </Button>
       </div>
 
       <div>
@@ -80,7 +104,7 @@ export default function ExportsPage() {
                 <h4 className="text-sm font-medium">{p.name}</h4>
                 <p className="text-xs text-muted-foreground">{p.description}</p>
               </div>
-              <Button size="sm" variant="outline" onClick={() => handleExport(p.name)}>
+              <Button size="sm" variant="outline" onClick={() => handleExport(p.filters, p.name)} disabled={exporting}>
                 <Download size={14} />
               </Button>
             </div>
