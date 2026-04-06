@@ -12,6 +12,7 @@ import CinemasPage from "@/pages/CinemasPage";
 import CinemaDetailPage from "@/pages/CinemaDetailPage";
 import ExportsPage from "@/pages/ExportsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import NetworkDiscoveryPage from "@/pages/NetworkDiscoveryPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
         <AppLayout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/discovery" element={<NetworkDiscoveryPage />} />
             <Route path="/targets" element={<MonitoringTargetsPage />} />
             <Route path="/session/:id" element={<SessionDetailPage />} />
             <Route path="/movies" element={<MovieComparisonPage />} />
