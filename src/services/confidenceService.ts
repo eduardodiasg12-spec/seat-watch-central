@@ -40,7 +40,7 @@ export function computeConfidenceScore(params: {
   pageLoadComplete: boolean;
 }): { score: number; reason: string } {
   let score = 100;
-  let reason = CONFIDENCE_REASONS.FULL_SEAT_MAP;
+  let reason: string = CONFIDENCE_REASONS.FULL_SEAT_MAP;
 
   if (!params.pageLoadComplete) {
     score -= 40;
