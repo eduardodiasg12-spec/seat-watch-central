@@ -1,10 +1,11 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Target, Film, Building2, Download, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Target, Film, Building2, Download, Settings, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/discovery', icon: Search, label: 'Network Discovery' },
   { to: '/targets', icon: Target, label: 'Monitoring Targets' },
   { to: '/movies', icon: Film, label: 'Movies' },
   { to: '/cinemas', icon: Building2, label: 'Cinemas' },
@@ -49,7 +50,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </nav>
         {!collapsed && (
           <div className="px-4 py-3 border-t border-sidebar-border text-xs text-muted-foreground">
-            Internal Tool v1.0
+            Internal Tool v2.0 · Supabase-backed
           </div>
         )}
       </aside>
