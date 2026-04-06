@@ -9,10 +9,10 @@ import { toast } from 'sonner';
 import { exportData, downloadBlob, ExportFilters } from '@/services/exportService';
 
 const presets = [
-  { id: 'daily', name: 'Daily Internal Report', description: 'All sessions, last 24h, high confidence only', filters: { dataType: 'snapshots' as const, highConfidenceOnly: true } },
+  { id: 'daily', name: 'Daily Internal Report', description: 'All snapshots, last 24h, high confidence only', filters: { dataType: 'snapshots' as const, highConfidenceOnly: true } },
   { id: 'vs_competitors', name: '2DIE4 vs Competitors', description: 'Comparison data across all cinemas', filters: { dataType: 'comparison' as const } },
-  { id: 'imax', name: 'IMAX Performance Report', description: 'IMAX-only sessions with occupancy trends', filters: { dataType: 'snapshots' as const, imaxOnly: true } },
-  { id: 'audit', name: 'Low-Confidence Audit Report', description: 'Snapshots with confidence < 70', filters: { dataType: 'snapshots' as const } },
+  { id: 'imax', name: 'IMAX Performance Report', description: 'IMAX-only sessions with occupancy data', filters: { dataType: 'snapshots' as const, imaxOnly: true } },
+  { id: 'audit', name: 'Low-Confidence Audit Report', description: 'All snapshots (filter for low confidence manually)', filters: { dataType: 'snapshots' as const } },
 ];
 
 export default function ExportsPage() {
@@ -35,6 +35,10 @@ export default function ExportsPage() {
         dateTo: dateTo || undefined,
       };
       const blob = await exportData(f, format);
+      if (blob.size <= 2) {
+        toast.warning('No real data available for this export. Ingest scrape results first.');
+        return;
+      }
       const name = `${presetName || 'export'}_${new Date().toISOString().slice(0, 10)}.${format}`;
       downloadBlob(blob, name);
       toast.success(`Export downloaded: ${name}`);
@@ -51,6 +55,7 @@ export default function ExportsPage() {
 
       <div className="glass-card p-5 space-y-4 max-w-xl">
         <h3 className="text-sm font-semibold">Custom Export</h3>
+        <p className="text-xs text-muted-foreground">Exports contain only real persisted data from the database. If no data matches your filters, the export will be empty.</p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Format</Label>

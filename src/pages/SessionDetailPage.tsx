@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ConfidenceBadge from '@/components/ConfidenceBadge';
 import { fetchScreeningById, fetchScrapeRunsForTarget } from '@/services/supabaseQueries';
@@ -20,7 +20,6 @@ export default function SessionDetailPage() {
         const scr = await fetchScreeningById(id);
         setScreening(scr);
 
-        // Find monitoring target for this screening
         const { data: targets } = await supabase.from('monitoring_targets').select('*').eq('screening_id', id).limit(1);
         const t = targets?.[0];
         setTarget(t);
@@ -50,6 +49,8 @@ export default function SessionDetailPage() {
       confidence: Number(r.occupancy_results[0].confidence_score),
     }));
 
+  const hasData = runs.length > 0;
+
   return (
     <div className="space-y-6">
       <Link to="/targets" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -67,12 +68,28 @@ export default function SessionDetailPage() {
             <a href={screening.booking_url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">{screening.booking_url}</a>
           )}
         </div>
-        {target && (
-          <span className={`text-xs font-medium ${target.is_active ? 'text-green-400' : 'text-muted-foreground'}`}>
-            {target.is_active ? '● Active' : '○ Paused'}
-          </span>
-        )}
+        <div className="text-right">
+          {target ? (
+            <span className={`text-xs font-medium ${target.is_active ? 'text-green-400' : 'text-muted-foreground'}`}>
+              {target.is_active ? '● Active' : '○ Paused'}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">No monitoring target</span>
+          )}
+        </div>
       </div>
+
+      {!hasData && (
+        <div className="glass-card p-6 text-center space-y-2">
+          <Send size={24} className="mx-auto text-muted-foreground" />
+          <p className="text-sm font-medium">No real monitoring data yet</p>
+          <p className="text-xs text-muted-foreground">
+            {target
+              ? 'This session has a monitoring target but no scrape results have been ingested yet. Send results via the scrape-ingest endpoint.'
+              : 'Create a monitoring target for this session first, then connect a collector to send occupancy data.'}
+          </p>
+        </div>
+      )}
 
       {chartData.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -107,7 +124,7 @@ export default function SessionDetailPage() {
       <div className="glass-card p-4">
         <h3 className="text-sm font-semibold mb-3">Snapshot History ({runs.length} runs)</h3>
         {runs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No scrape runs yet for this session.</p>
+          <p className="text-sm text-muted-foreground">No scrape runs recorded for this session.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">
@@ -123,7 +140,7 @@ export default function SessionDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {runs.slice(0, 30).map(r => {
+                {runs.slice(0, 50).map(r => {
                   const occ = r.occupancy_results?.[0];
                   return (
                     <tr key={r.id} className="border-b border-border/30 hover:bg-accent/30">

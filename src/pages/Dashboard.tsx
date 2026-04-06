@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Film, Camera, Ticket, TrendingUp, AlertTriangle, Trophy, BarChart3, Layers } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { Building2, Film, Camera, Ticket, TrendingUp, AlertTriangle, Trophy, BarChart3, Layers, Search, PlusCircle, Send } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import KPICard from '@/components/KPICard';
 import ConfidenceBadge from '@/components/ConfidenceBadge';
 import { fetchDashboardKPIs, fetchOccupancyTrend, fetchTopCinemasBySales, fetchRecentScrapeRuns, fetchDie4LeadershipCount } from '@/services/supabaseQueries';
@@ -36,7 +36,6 @@ export default function Dashboard() {
         setDie4Leading(leading);
         setTopCinemas(cinemas);
 
-        // Process trend data
         const grouped: Record<string, Record<string, number>> = {};
         for (const run of trend || []) {
           const ts = (run as any).run_timestamp;
@@ -53,7 +52,6 @@ export default function Dashboard() {
         }));
         setTrendData(trendArr);
 
-        // Process recent runs
         const processedRuns = (runs || []).map((run: any) => ({
           id: run.id,
           run_timestamp: run.run_timestamp,
@@ -106,23 +104,43 @@ export default function Dashboard() {
       </div>
 
       {noData && (
-        <div className="glass-card p-6 text-center space-y-2">
-          <p className="text-muted-foreground">No data yet. Start by running a <Link to="/discovery" className="text-primary hover:underline">Network Discovery</Link> or <Link to="/seed" className="text-primary hover:underline">seeding demo data</Link>.</p>
+        <div className="glass-card p-8 space-y-4">
+          <h2 className="text-lg font-semibold text-center">No real monitoring data yet</h2>
+          <p className="text-sm text-muted-foreground text-center max-w-lg mx-auto">
+            The dashboard displays only real persisted data from scrape runs and occupancy results. Follow these steps to populate it:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
+            <Link to="/discovery" className="glass-card p-4 text-center hover:border-primary/30 transition-colors">
+              <Search size={20} className="mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium">1. Run Discovery</p>
+              <p className="text-xs text-muted-foreground mt-1">Select a cinema chain and discover where 2DIE4 is playing</p>
+            </Link>
+            <Link to="/targets" className="glass-card p-4 text-center hover:border-primary/30 transition-colors">
+              <PlusCircle size={20} className="mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium">2. Create Targets</p>
+              <p className="text-xs text-muted-foreground mt-1">Approve discovered sessions or add monitoring targets manually</p>
+            </Link>
+            <div className="glass-card p-4 text-center">
+              <Send size={20} className="mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium">3. Ingest Scrape Data</p>
+              <p className="text-xs text-muted-foreground mt-1">Connect a Playwright collector to send occupancy results via the scrape-ingest endpoint</p>
+            </div>
+          </div>
         </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard label="Chains Monitored" value={kpis?.totalChains || 0} icon={Layers} />
-        <KPICard label="Cinemas Monitored" value={kpis?.totalCinemas || 0} icon={Building2} />
-        <KPICard label="Sessions Monitored" value={kpis?.totalSessions || 0} icon={Film} />
-        <KPICard label="Total Snapshots" value={kpis?.totalSnapshots || 0} icon={Camera} />
-        <KPICard label="Est. Tickets Sold" value={kpis?.totalEstimatedTickets || 0} icon={Ticket} variant="primary" />
-        <KPICard label="Total Scrape Runs" value={kpis?.totalRuns || 0} icon={BarChart3} />
+        <KPICard label="Chains Monitored" value={kpis?.totalChains ?? 0} icon={Layers} />
+        <KPICard label="Cinemas Monitored" value={kpis?.totalCinemas ?? 0} icon={Building2} />
+        <KPICard label="Sessions Monitored" value={kpis?.totalSessions ?? 0} icon={Film} />
+        <KPICard label="Total Snapshots" value={kpis?.totalSnapshots ?? 0} icon={Camera} />
+        <KPICard label="Est. Tickets Sold" value={kpis?.totalEstimatedTickets ?? 0} icon={Ticket} variant="primary" />
+        <KPICard label="Total Scrape Runs" value={kpis?.totalRuns ?? 0} icon={BarChart3} />
         <KPICard label="2DIE4 Leading In" value={`${die4Leading} comparisons`} icon={Trophy} variant="success" />
-        <KPICard label="Low Confidence" value={kpis?.lowConfidence || 0} icon={AlertTriangle} variant={(kpis?.lowConfidence || 0) > 20 ? 'warning' : 'default'} />
+        <KPICard label="Low Confidence" value={kpis?.lowConfidence ?? 0} icon={AlertTriangle} variant={(kpis?.lowConfidence || 0) > 20 ? 'warning' : 'default'} />
       </div>
 
-      {trendData.length > 0 && (
+      {trendData.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="glass-card p-4">
             <h3 className="text-sm font-semibold mb-3">Occupancy Trend — All Movies</h3>
@@ -142,20 +160,28 @@ export default function Dashboard() {
 
           <div className="glass-card p-4">
             <h3 className="text-sm font-semibold mb-3">Top Cinemas by Est. Sales</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={topCinemas} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(224,14%,18%)" />
-                <XAxis type="number" tick={{ fill: 'hsl(215,12%,50%)', fontSize: 10 }} />
-                <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(215,12%,50%)', fontSize: 10 }} width={130} />
-                <Tooltip contentStyle={{ background: 'hsl(224,18%,11%)', border: '1px solid hsl(224,14%,18%)', borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="seats" fill="hsl(38,92%,55%)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {topCinemas.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={topCinemas} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(224,14%,18%)" />
+                  <XAxis type="number" tick={{ fill: 'hsl(215,12%,50%)', fontSize: 10 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(215,12%,50%)', fontSize: 10 }} width={130} />
+                  <Tooltip contentStyle={{ background: 'hsl(224,18%,11%)', border: '1px solid hsl(224,14%,18%)', borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="seats" fill="hsl(38,92%,55%)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-12">No cinema sales data available yet.</p>
+            )}
           </div>
         </div>
-      )}
+      ) : !noData ? (
+        <div className="glass-card p-6 text-center text-muted-foreground text-sm">
+          No occupancy trend data available. Scrape runs with successful occupancy results will appear here.
+        </div>
+      ) : null}
 
-      {recentRuns.length > 0 && (
+      {recentRuns.length > 0 ? (
         <div className="glass-card p-4">
           <h3 className="text-sm font-semibold mb-3">Recent Scrape Runs</h3>
           <div className="overflow-x-auto">
@@ -189,7 +215,11 @@ export default function Dashboard() {
             </table>
           </div>
         </div>
-      )}
+      ) : !noData ? (
+        <div className="glass-card p-6 text-center text-muted-foreground text-sm">
+          No scrape runs recorded yet. Connect a collector and send results to the scrape-ingest endpoint.
+        </div>
+      ) : null}
     </div>
   );
 }
